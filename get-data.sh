@@ -32,7 +32,8 @@ rm nodes.dmp
 rm readme.txt
 
 for f in gi_taxid_*.dmp; do
-    sed '1i gi\ttaxid' $f > $(sed -r 's/(gi_taxid)_(.).*/\2\1.dmp/' <<< $f | tr '_' '2')
+    letter=$(sed -r 's/gi_taxid_(.).*/\1/')
+    sed '1i '$letter'gi\ttaxid' $f > ${letter}gi2taxid.dmp
 done
 
 rm gi_taxid*
