@@ -17,7 +17,8 @@ for f in 'gi_taxid_prot.zip' 'gi_taxid_nucl.zip' 'taxdmp.zip' 'taxcat.zip'; do
 done
 
 sed 's/[ \t]*|[ \t]*/|/g' names.dmp |
-    awk 'BEGIN{FS="|"; OFS="\t"} {print $1, $2, $4}' > taxid2name.dmp
+    awk 'BEGIN{FS="|"; OFS="\t"} {print $1, $2, $4}' |
+    sed '1i taxid\tname\tclass' > taxid2name.dmp
 
 rm categories.dmp
 rm citations.dmp
@@ -30,4 +31,8 @@ rm names.dmp
 rm nodes.dmp
 rm readme.txt
 
-rename 's/gi_taxid_(.).*/$1gi2taxid.dmp/x' *
+for f in gi_taxid_*.dmp; do
+    sed '1i gi\ttaxid' $f > $(sed -r 's/(gi_taxid)_(.).*/\2\1.dmp/' <<< $f | tr '_' '2')
+done
+
+rm gi_taxid*
