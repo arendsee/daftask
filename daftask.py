@@ -4,6 +4,7 @@ import os
 import sqlite3
 import sys
 import traceback
+import string
 
 def parse():
     parser = argparse.ArgumentParser(
@@ -189,6 +190,17 @@ class Database:
             sys.exit(1)
 
 
+
+# =================
+# Utility Functions
+# =================
+
+def quote_noninteger(s):
+    if(s.isdigit()):
+        return(s)
+    else:
+        return("'%s'" % s)
+
 if __name__ == '__main__':
     import argparse
     args = parse()
@@ -199,6 +211,7 @@ if __name__ == '__main__':
         db.update()
 
     if args.input and args.fromto:
+        args.input = [quote_noninteger(x.strip()) for x in args.input]
         for i,o in db.map(args):
             if args.single_row:
                 print(o)
