@@ -3,6 +3,7 @@
 import os
 import sqlite3
 import sys
+import traceback
 
 def parse():
     parser = argparse.ArgumentParser(
@@ -31,6 +32,20 @@ def parse():
         default=False
     )
 
+    parser.add_argument(
+        '-s', '--single-row',
+        help='only print the output entries',
+        action='store_true',
+        default=False
+    )
+
+    parser.add_argument(
+        '--show-cmd',
+        help='print SQL query to STDERR',
+        action='store_true',
+        default=False
+    )
+
     args = parser.parse_args()
     return(args)
 
@@ -45,7 +60,7 @@ class Table:
     def get_dmpfile(self):
         wkdir   = os.path.dirname(os.path.abspath(__file__))
         datadir = os.path.join(wkdir, 'data')
-        dmpfile = os.path.join(datadir, self.name + '.dmp~')
+        dmpfile = os.path.join(datadir, self.name + '.dmp')
         return(dmpfile)
 
 class PGi2Taxid(Table):
@@ -64,12 +79,12 @@ class NGi2Taxid(Table):
             indices={'taxid'}
         )
 
-class Taxid2Name(Table):
+class Taxid2Sciname(Table):
     def __init__(self):
         super().__init__(
-            name='taxid2name',
-            coldefs=['taxid INTEGER', 'name INTEGER', 'class TEXT'],
-            indices={'taxid', 'name'}
+            name='taxid2sciname',
+            coldefs=['taxid INTEGER', 'sciname INTEGER', 'class TEXT'],
+            indices={'taxid', 'sciname'}
         )
 
 class Database:
@@ -78,7 +93,7 @@ class Database:
         dbname = os.path.join(wkdir, 'daftask.db')
         self.con = sqlite3.connect(dbname)
         self.cur = self.con.cursor()
-        self.tbls = [PGi2Taxid(), NGi2Taxid(), Taxid2Name()]
+        self.tbls = [PGi2Taxid(), NGi2Taxid(), Taxid2Sciname()]
 
         if not all([self._has_table(t.name, self.cur) for t in self.tbls]):
             self._initialize(self.cur, self.tbls)
@@ -105,16 +120,14 @@ class Database:
     def map(self, args):
         cmd = "SELECT {} FROM {} WHERE {} IN ({})"
         for tbl in self.tbls:
-            if set(args.fromto) - tbl.indices:
+            if not set(args.fromto) - tbl.colnames:
                 cmd = cmd.format(','.join(args.fromto),
                                  tbl.name,
                                  args.fromto[0],
                                  ','.join(args.input))
-                print(cmd)
+                if args.show_cmd:
+                    print(cmd, file=sys.stderr)
                 return(self._fetch(cmd))
-
-
-
     def _initialize(self, cur, tbls):
         drop_table   = "DROP TABLE IF EXISTS {table}"
         create_index = "CREATE INDEX {table}_{index} ON {table} ({index})"
@@ -147,7 +160,7 @@ class Database:
             self._sql_err(e, cmd)
         return(result)
 
-    def _sql_err(e, cmd):
+    def _sql_err(self, e, cmd):
         print("Error on command\n{}".format(cmd), file=sys.stderr)
         print(e, file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
@@ -186,4 +199,8 @@ if __name__ == '__main__':
         db.update()
 
     if args.input and args.fromto:
-        print(db.map(args))
+        for i,o in db.map(args):
+            if args.single_row:
+                print(o)
+            else:
+                print("{}\t{}".format(i,o))

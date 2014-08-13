@@ -17,8 +17,8 @@ for f in 'gi_taxid_prot.zip' 'gi_taxid_nucl.zip' 'taxdmp.zip' 'taxcat.zip'; do
 done
 
 sed 's/[ \t]*|[ \t]*/|/g' names.dmp |
-    awk 'BEGIN{FS="|"; OFS="\t"} {print $1, $2, $4}' |
-    sed '1i taxid\tname\tclass' > taxid2name.dmp
+    awk 'BEGIN{FS="|"; OFS="\t"} $4 == "scientific name" {print $1, $2}' |
+    sed '1i taxid\tsciname' > taxid2sciname.dmp
 
 rm categories.dmp
 rm citations.dmp
@@ -32,7 +32,7 @@ rm nodes.dmp
 rm readme.txt
 
 for f in gi_taxid_*.dmp; do
-    letter=$(sed -r 's/gi_taxid_(.).*/\1/')
+    letter=$(sed -r 's/gi_taxid_(.).*/\1/' <<< $f)
     sed '1i '$letter'gi\ttaxid' $f > ${letter}gi2taxid.dmp
 done
 
