@@ -26,7 +26,7 @@ def parse():
     )
 
     parser.add_argument(
-        '-u', '--update',
+        '-b', '--build',
         help='download current data and rebuild database',
         action='store_true',
         default=False
@@ -102,7 +102,7 @@ class Database:
         self.con.commit()
         self.con.close()
 
-    def update(self):
+    def build(self):
         def rowgen(f):
             for line in f:
                 yield line.rstrip().split("\t")
@@ -117,15 +117,15 @@ class Database:
                         )
                 self._execute_many(cmd, rowgen(f))
 
-    def map(self, args):
+    def map(self, fromto, input_, show_cmd=False):
         cmd = "SELECT {} FROM {} WHERE {} IN ({})"
         for tbl in self.tbls:
-            if not set(args.fromto) - tbl.colnames:
-                cmd = cmd.format(','.join(args.fromto),
+            if not set(fromto) - tbl.colnames:
+                cmd = cmd.format(','.join(fromto),
                                  tbl.name,
-                                 args.fromto[0],
-                                 ','.join(args.input))
-                if args.show_cmd:
+                                 fromto[0],
+                                 ','.join(input_))
+                if show_cmd:
                     print(cmd, file=sys.stderr)
                 return(self._fetch(cmd))
     def _initialize(self, cur, tbls):
@@ -200,18 +200,19 @@ def quote_noninteger(s):
     else:
         return("'%s'" % s)
 
+
 if __name__ == '__main__':
     import argparse
     args = parse()
 
     db = Database()
 
-    if args.update:
-        db.update()
+    if args.build:
+        db.build()
 
     if args.input and args.fromto:
         args.input = [quote_noninteger(x.strip()) for x in args.input]
-        for i,o in db.map(args):
+        for i,o in db.map(args.fromto, args.input, show_cmd=args.show_cmd):
             if args.single_row:
                 print(o)
             else:
