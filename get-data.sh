@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# This scripts prepares the raw data needed by daftask
+# Output:
+# 1) pgi2taxid.dmp - map of protein gis to taxids
+#    pgi | taxid 
+# 2) ngi2taxid.dmp - map of nucleotide gis to taxids
+#    ngi | taxid 
+# 3) taxid2sciname.dmp - map of taxids to scientific names
+#    taxid | sciname
+
+# Base directory for the ncbi taxonomy database
 base='ftp://ftp.ncbi.nih.gov/pub/taxonomy'
 
 if [[ ! -d data ]]; then
