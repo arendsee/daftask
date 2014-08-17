@@ -19,9 +19,8 @@ def parse():
     )
 
     parser.add_argument(
-        '-d' '--fromto',
+        '-d', '--fromto',
         help='Input and output identifier classes',
-        dest='fromto',
         nargs=2,
         choices=['pgi', 'ngi', 'taxid', 'sciname']
     )
