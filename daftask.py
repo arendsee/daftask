@@ -51,64 +51,73 @@ def parse():
 
 
 class Table:
-    def __init__(self, name, coldefs, indices=None):
+    def __init__(self, name, coldefs, indices=None, datadir=None):
         self.name = name
         self.coldefs = coldefs
         self.colnames = {s.split()[0] for s in self.coldefs}
         self.indices = set(indices)
+        self.dmpfile = self._get_dmpfile(datadir)
 
-    def get_dmpfile(self):
-        wkdir   = os.path.dirname(os.path.abspath(__file__))
-        datadir = os.path.join(wkdir, 'data')
+    def _get_dmpfile(self, datadir=None):
+        if not datadir:
+            wkdir   = os.path.dirname(os.path.abspath(__file__))
+            datadir = os.path.join(wkdir, 'data')
         dmpfile = os.path.join(datadir, self.name + '.dmp')
         return(dmpfile)
 
 class PGi2Taxid(Table):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         super().__init__(
             name='pgi2taxid',
             coldefs=['pgi INTEGER PRIMARY KEY', 'taxid INTEGER'],
-            indices={'taxid'}
+            indices={'taxid'},
+            **kwargs
         )
 
 class NGi2Taxid(Table):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         super().__init__(
             name='ngi2taxid',
             coldefs=['ngi INTEGER PRIMARY KEY', 'taxid INTEGER'],
-            indices={'taxid'}
+            indices={'taxid'},
+            **kwargs
         )
 
 class Taxid2Sciname(Table):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         super().__init__(
             name='taxid2sciname',
             coldefs=['taxid INTEGER', 'sciname INTEGER', 'class TEXT'],
-            indices={'taxid', 'sciname'}
+            indices={'taxid'},
+            **kwargs
         )
 
 class Database:
-    def __init__(self):
-        wkdir = os.path.dirname(os.path.abspath(__file__))
-        dbname = os.path.join(wkdir, 'daftask.db')
+    def __init__(self, dbname=None, datadir=None):
+        if not dbname:
+            wkdir = os.path.dirname(os.path.abspath(__file__))
+            dbname = os.path.join(wkdir, 'daftask.db')
         self.con = sqlite3.connect(dbname)
         self.cur = self.con.cursor()
-        self.tbls = [PGi2Taxid(), NGi2Taxid(), Taxid2Sciname()]
-
-        if not all([self._has_table(t.name, self.cur) for t in self.tbls]):
-            self._initialize(self.cur, self.tbls)
+        self.tbls = [PGi2Taxid(datadir=datadir),
+                     NGi2Taxid(datadir=datadir),
+                     Taxid2Sciname(datadir=datadir)]
 
     def __del__(self):
         self.con.commit()
         self.con.close()
 
     def build(self):
+
+        if not all([self._has_table(t.name, self.cur) for t in self.tbls]):
+            self._initialize(self.cur, self.tbls)
+
         def rowgen(f):
             for line in f:
                 yield line.rstrip().split("\t")
 
         for tbl in self.tbls:
-            with open(tbl.get_dmpfile(), 'r') as f:
+            with open(tbl.dmpfile, 'r') as f:
                 header = f.readline().split('\t')
                 cmd = "INSERT INTO {} ({}) VALUES ({})".format(
                             tbl.name,
@@ -194,11 +203,13 @@ class Database:
 # Utility Functions
 # =================
 
-def quote_noninteger(s):
-    if(s.isdigit()):
-        return(s)
-    else:
-        return("'%s'" % s)
+def prepare_input(i):
+    def quote_noninteger(s):
+        if(s.isdigit()):
+            return(s)
+        else:
+            return("'%s'" % s)
+    return([quote_noninteger(x.strip()) for x in i])
 
 
 if __name__ == '__main__':
@@ -211,8 +222,8 @@ if __name__ == '__main__':
         db.build()
 
     if args.input and args.fromto:
-        args.input = [quote_noninteger(x.strip()) for x in args.input]
-        for i,o in db.map(args.fromto, args.input, show_cmd=args.show_cmd):
+        in_ = prepare_input(args.input)
+        for i,o in db.map(args.fromto, in_, show_cmd=args.show_cmd):
             if args.single_row:
                 print(o)
             else:
