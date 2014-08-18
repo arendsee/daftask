@@ -1,13 +1,11 @@
 #!/bin/bash
 
-
 DAFT_HOME=$PWD
 DATABASE=$DAFT_HOME/daftask.db
 DATA_DIR=$DAFT_HOME/data
 ALIAS_DIR=$DAFT_HOME/aliases
 
 function prepare_data {
-
     # This function prepares the raw data needed by daftask
     # Output:
     # 1) pgi2taxid.dmp - map of protein gis to taxids
@@ -20,11 +18,11 @@ function prepare_data {
     # Base directory for the ncbi taxonomy database
     base='ftp://ftp.ncbi.nih.gov/pub/taxonomy'
 
-    if [[ ! -d DATA_DIR ]]; then
-       mkdir DATA_DIR
+    if [[ ! -d $DATA_DIR ]]; then
+       mkdir $DATA_DIR
     fi
 
-    cd DATA_DIR
+    cd $DATA_DIR
 
     for f in 'gi_taxid_prot.zip' 'gi_taxid_nucl.zip' 'taxdmp.zip' 'taxcat.zip'; do
         wget -O $f $base/$f
@@ -57,31 +55,25 @@ function prepare_data {
     rm gi_taxid*
 
     cd ..
-
 }
 
 
 function make_alias {
-
     afile="${ALIAS_DIR}/${1}2${2}"
-echo '#!/bin/bash' > $afile
-echo 'DAFT_HOME/daftask.py -d INFIELD OUTFIELD --database DATABASE --data-directory DATA_DIR "$@"' |
-    sed "s|DAFT_HOME|$DAFT_HOME|;
-         s|INFIELD|$1|;
-         s|OUTFIELD|$2|;
-         s|DATABASE|$DATABASE|;
-         s|DATA_DIR|$DATA_DIR|" >> $afile
+    echo '#!/bin/bash' > $afile
+    echo 'DAFT/daftask.py -d IN OUT --database DB "$@"' |
+    sed "s|DAFT|$DAFT_HOME|;
+         s|IN|$1|;
+         s|OUT|$2|;
+         s|DB|$DATABASE|" >> $afile
 
     chmod 755 $afile
-
 }
 
 
 function make_aliases {
-
-
-    if [[ ! -d aliases ]]; then
-       mkdir aliases
+    if [[ ! -d $ALIAS_DIR ]]; then
+       mkdir $ALIAS_DIR
     fi
     
     for cols in 'pgi taxid' 'ngi taxid' 'taxid sciname'; do
@@ -93,7 +85,17 @@ function make_aliases {
             done
         done
     done
-
 }
 
+
+# Download data and prepare data tables
+prepare_data
+
+# Load data into SQL databases
+./daftask.py -b
+
+# Remove original data
+rm -rf $DATA_DIR
+
+# Create aliases for specific conversions
 make_aliases
