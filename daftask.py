@@ -6,10 +6,17 @@ import sys
 import traceback
 import string
 
+__version__ = '1.0.0'
+
 def parse():
     parser = argparse.ArgumentParser(
         description="Database for taxonomic and sequence id conversions"
     )
+
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version='%(prog)s {}'.format(__version__))
 
     parser.add_argument(
         'input',
