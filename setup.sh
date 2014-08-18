@@ -70,7 +70,7 @@ if [[ $(tty) == "not a tty" ]]; then
     in=$(cat)
 elif [[ ! -z $@ ]]; then
     in=$@
-else;
+else
     echo "No input detected" > /dev/stderr
 fi
 
