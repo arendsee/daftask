@@ -64,23 +64,13 @@ function prepare_data {
 function make_alias {
 
     afile="${ALIAS_DIR}/${1}2${2}"
-echo '#!/bin/bash
-
-if [[ $(tty) == "not a tty" ]]; then
-    in=$(cat)
-elif [[ ! -z $@ ]]; then
-    in=$@
-else
-    echo "No input detected" > /dev/stderr
-fi
-
-echo $in | DAFT_HOME/daftask.py -d INFIELD OUTFIELD --database DATABASE --data-directory DATA_DIR
-' |
+echo '#!/bin/bash' > $afile
+echo 'DAFT_HOME/daftask.py -d INFIELD OUTFIELD --database DATABASE --data-directory DATA_DIR "$@"' |
     sed "s|DAFT_HOME|$DAFT_HOME|;
          s|INFIELD|$1|;
          s|OUTFIELD|$2|;
          s|DATABASE|$DATABASE|;
-         s|DATA_DIR|$DATA_DIR|" > $afile
+         s|DATA_DIR|$DATA_DIR|" >> $afile
 
     chmod 755 $afile
 
