@@ -46,6 +46,16 @@ def parse():
         default=False
     )
 
+    parser.add_argument(
+        '--database',
+        help='location of database'
+    )
+
+    parser.add_argument(
+        '--data-directory',
+        help='location of data diretory'
+    )
+
     args = parser.parse_args()
     return(args)
 
@@ -210,6 +220,7 @@ def prepare_input(i):
         else:
             return("'%s'" % s)
     return([quote_noninteger(x.strip()) for x in i])
+
 
 
 if __name__ == '__main__':
