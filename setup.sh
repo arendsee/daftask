@@ -92,10 +92,12 @@ function make_aliases {
 prepare_data
 
 # Load data into SQL databases
-./daftask.py -b
+echo 'Loading data into SQL database, this may take an hour' > /dev/stderr
+time ./daftask.py -b
 
-# Remove original data
-rm -rf $DATA_DIR
-
-# Create aliases for specific conversions
-make_aliases
+if [[ $? == 0 ]]; then
+    # Remove original datafiles
+    rm -rf $DATA_DIR
+    # Create aliases for specific conversions
+    make_aliases
+fi
