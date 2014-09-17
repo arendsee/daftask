@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import traceback
 import string
+import collections
 
 __version__ = '1.0.0'
 
@@ -218,10 +219,6 @@ class Database:
 # Utility Functions
 # =================
 
-def prepare_input(i):
-    rows = [[x for x in line.strip().split('\t')] for line in i]
-    return( {r[-1]:r for r in rows} )
-
 def to_quoted_keys(d):
     def quote_noninteger(s):
         if(s.isdigit()):
@@ -231,27 +228,33 @@ def to_quoted_keys(d):
     keys = [quote_noninteger(k) for k in d.keys()]
     return(keys)
 
+def prepare_output(args):
+    in_ = collections.defaultdict(list)
+    for line in args.input:
+        row = line.strip().split('\t')
+        in_[row[-1]].append(row)
+
+    out_ = collections.defaultdict(list)
+    for i,o in Database().map(args.fromto, to_quoted_keys(in_), show_cmd=args.show_cmd):
+        out_[str(i)].append(str(o))
+
+    for k,v in in_.items():
+        key = k.strip("'")
+        for in_row in v:
+            in_line = '\t'.join(in_row)
+            for out_line in out_[key]:
+                if args.single_row:
+                    yield out_line
+                else:
+                    yield "{}\t{}".format(in_line, out_line)
+
 if __name__ == '__main__':
     import argparse
     args = parse()
 
-    db = Database()
-
     if args.build:
-        db.build()
-
+        Database().build()
 
     if args.input and args.fromto:
-        in_ = prepare_input(args.input)
-        out = {str(i):str(o) for i,o in db.map(args.fromto, to_quoted_keys(in_), show_cmd=args.show_cmd)}
-        for k,v in in_.items():
-            try:
-                if args.single_row:
-                    print(out[k])
-                else:
-                    print("{}\t{}".format('\t'.join(v), out[k.strip("'")]))
-            except KeyError:
-                print("IN:{}".format(in_))
-                print("OUT:{}".format(out))
-                print("key: {}\nvalue: {}".format(k,v))
-                sys.exit(1)
+        for line in prepare_output(args):
+            print(line)
