@@ -11,12 +11,6 @@ def vector2file(x, filename):
     with open(filename, 'wb') as f:
         f.write(bytes(x, 'ascii'))
 
-class TestUtilities(unittest.TestCase):
-    def test_prepare_input(self):
-        self.assertEqual(daftask.prepare_input(['asdf']), ["'asdf'"])
-        self.assertEqual(daftask.prepare_input(['156']), ['156'])
-        self.assertEqual(daftask.prepare_input(['156', 'asdf']), ['156', "'asdf'"])
-
 class TestDatabase(unittest.TestCase):
     def setUp(self):
         self.datadir = tempfile.mkdtemp()
