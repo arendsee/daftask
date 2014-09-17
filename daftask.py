@@ -66,7 +66,6 @@ def parse():
     args = parser.parse_args()
     return(args)
 
-
 class Table:
     def __init__(self, name, coldefs, indices=None, datadir=None):
         self.name = name
@@ -125,7 +124,6 @@ class Database:
         self.con.close()
 
     def build(self):
-
         if not all([self._has_table(t.name, self.cur) for t in self.tbls]):
             self._initialize(self.cur, self.tbls)
 
@@ -221,14 +219,17 @@ class Database:
 # =================
 
 def prepare_input(i):
+    rows = [[x for x in line.strip().split('\t')] for line in i]
+    return( {r[-1]:r for r in rows} )
+
+def to_quoted_keys(d):
     def quote_noninteger(s):
         if(s.isdigit()):
             return(s)
         else:
             return("'%s'" % s)
-    return([quote_noninteger(x.strip()) for x in i])
-
-
+    keys = [quote_noninteger(k) for k in d.keys()]
+    return(keys)
 
 if __name__ == '__main__':
     import argparse
@@ -239,10 +240,18 @@ if __name__ == '__main__':
     if args.build:
         db.build()
 
+
     if args.input and args.fromto:
         in_ = prepare_input(args.input)
-        for i,o in db.map(args.fromto, in_, show_cmd=args.show_cmd):
-            if args.single_row:
-                print(o)
-            else:
-                print("{}\t{}".format(i,o))
+        out = {str(i):str(o) for i,o in db.map(args.fromto, to_quoted_keys(in_), show_cmd=args.show_cmd)}
+        for k,v in in_.items():
+            try:
+                if args.single_row:
+                    print(out[k])
+                else:
+                    print("{}\t{}".format('\t'.join(v), out[k.strip("'")]))
+            except KeyError:
+                print("IN:{}".format(in_))
+                print("OUT:{}".format(out))
+                print("key: {}\nvalue: {}".format(k,v))
+                sys.exit(1)
