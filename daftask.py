@@ -234,6 +234,10 @@ def prepare_output(args):
         row = line.strip().split('\t')
         in_[row[-1]].append(row)
 
+    if args.fromto[0] == 'sciname' and in_:
+        import re
+        in_ = {re.sub('_', ' ', k):v for k,v in in_.items()}
+
     out_ = collections.defaultdict(list)
     for i,o in Database().map(args.fromto, to_quoted_keys(in_), show_cmd=args.show_cmd):
         out_[str(i)].append(str(o))
